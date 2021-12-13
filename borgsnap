@@ -337,7 +337,7 @@ runBackup() {
         $PRE_SCRIPT $i
 	sleep 3
       fi
-    fi      	    
+    fi
 
     if [[ $forcemonth == 1 || $dom -eq 1 ]]; then
       label="month-$date"
@@ -358,7 +358,7 @@ runBackup() {
 
     if [[ -n $POST_SCRIPT ]]; then
       echo "====== $(date) ======"
-      echo "Executing post-snapshot script: $POST_SCRIPT"      
+      echo "Executing post-snapshot script: $POST_SCRIPT"
       if [[ -x $POST_SCRIPT ]]; then
         $POST_SCRIPT $i
       fi
@@ -434,7 +434,7 @@ tidybackup() {
   BORG_OPTS="--info --stats"
   if [[ -n $borgdir && $LOCALSKIP != true ]]; then
     echo "Deleting local backup of ${1}@${2}"
-    borg delete $BORG_OPTS "${borgdir}::${2}" 
+    borg delete $BORG_OPTS "${borgdir}::${2}"
     if [ ${LOCAL_READABLE_BY_OTHERS} ]; then
       echo "Set read permissions for others"
       chmod +rx "${borgdir}" -R
