@@ -12,7 +12,7 @@ RECURSIVE=true # Also create Snapshots for child filesystems
 COMPRESS="zstd,3" # Compression method for borg
 REMOTE="" # E.g. XXXX@YYYY.rsync.net:myhost (only rsync has been tested yet)
 REMOTE_BORG_COMMAND="borg" # 'borg' for local 'borg1' for local & remote
-PASS="/boot/config/plugins/user.scripts/scripts/borgsnap/backup.key" # Path to a file containing a single line with the passphrase for borg encryption. I generate these with "pwgen 128 1 > /boot/config/plugins/user.scripts/scripts/borgsnap/backup.key".
+PASS="/boot/config/plugins/user.scripts/scripts/borgsnap/backup.key" # Path to a file containing a single line with the passphrase for borg encryption. See https://github.com/mirisbowring/borgsnap/tree/master?tab=readme-ov-file#generate-key
 MONTH_KEEP=1 # Number of month backups to keep.
 WEEK_KEEP=4 # Number of week backups to keep.
 DAY_KEEP=7 # Number of day backups to keep.
