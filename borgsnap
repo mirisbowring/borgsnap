@@ -524,4 +524,3 @@ snap) backupSnapshot "${@:2}" ;;
 tidy) tidyUp "${@:2}" ;;
 *) echo "$1 is an unknown command!" && usage ;;
 esac
-exit

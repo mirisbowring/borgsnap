@@ -1,0 +1,9 @@
+#!/bin/bash
+
+git stage script
+git stash
+git pull
+git stash pop
+
+echo "Please Fix possible merge conflicts in ./script..."
+exit
