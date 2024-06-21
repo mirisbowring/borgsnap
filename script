@@ -1,0 +1,23 @@
+#!/bin/bash
+#description=This script is used to create (recursive) snapshots of specific zfs pools / datasets and back them up to a local (optional remote) borg repository.
+#arrayStarted=true
+#name=borgsnap
+
+FS="zroot/root zroot/home zdata/data" # list all zfs filesystems that should be backed up
+LOCAL="/mnt/disks/<BACKUP-DISK>/BORG" # location of the BORG Archives - an unassigned device is recommended
+BASEDIR="/mnt/user/appdata/borg-local" # Recommended for unraid - not neccessary on other OS
+LOCAL_READABLE_BY_OTHERS=false # Whether non root users should be able to read the borg repo
+LOCALSKIP=false # Skip local Backups and only do remote ones
+RECURSIVE=true # Also create Snapshots for child filesystems
+COMPRESS="zstd,3" # Compression method for borg
+REMOTE="" # E.g. XXXX@YYYY.rsync.net:myhost (only rsync has been tested yet)
+REMOTE_BORG_COMMAND="borg" # 'borg' for local 'borg1' for local & remote
+PASS="/boot/config/plugins/user.scripts/scripts/borgsnap/backup.key" # Path to a file containing a single line with the passphrase for borg encryption. I generate these with "pwgen 128 1 > /boot/config/plugins/user.scripts/scripts/borgsnap/backup.key".
+MONTH_KEEP=1 # Number of month backups to keep.
+WEEK_KEEP=4 # Number of week backups to keep.
+DAY_KEEP=7 # Number of day backups to keep.
+PRE_SCRIPT="" # /boot/config/plugins/user.scripts/scripts/borgsnap/prescript.sh
+POST_SCRIPT="" # /boot/config/plugins/user.scripts/scripts/borgsnap/postscript.sh
+NO_CONFIG=true # use this to disable config file check for borgsnap (only needed when using this script template)
+
+source borgsnap run # config file not neccessary due to $NO_CONFIG

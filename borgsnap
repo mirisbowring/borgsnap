@@ -34,7 +34,7 @@
 # LOCAL_READABLE_BY_OTHERS - Make borg repo readable by non-root
 #   Example: LOCAL_READABLE_BY_OTHERS=true
 #
-# SKIPLOCAL - If specified, borgsnap will skip local backup destinations and
+# LOCALSKIP - If specified, borgsnap will skip local backup destinations and
 #             only issue backup commands to REMOTE destination
 #
 # RECURSIVE - Create recursive ZFS snapshots for all child filsystems beneath
@@ -112,9 +112,12 @@ forceweek=0
 
 readconfigfile() {
   [[ $# == 1 ]] || usage
-  [[ -r $1 ]] || die "Unable to open $1"
 
-  source "$1"
+  # source config file if values have not been set already
+  if [[ "$NO_CONFIG" != true ]]; then
+    [[ -r $1 ]] || die "Unable to open $1"
+    source "$1"
+  fi
 
   BORG_PASSPHRASE=$(<"$PASS")
   export BORG_PASSPHRASE
