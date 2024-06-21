@@ -289,7 +289,13 @@ purgeold() {
 }
 
 runBackup() {
-  readconfigfile $1
+  
+  # only pass the argument when given
+  if [[ -n $1 ]]; then
+    readconfigfile $1
+  else
+    readconfigfile
+  fi
 
   echo "====== $(date) ======"
   for i in $FS; do
