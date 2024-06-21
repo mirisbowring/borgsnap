@@ -37,7 +37,7 @@
 # SKIPLOCAL - If specified, borgsnap will skip local backup destinations and
 #             only issue backup commands to REMOTE destination
 #
-# RECURSIVE - Create recursive ZFS snapshots for all child filsystems beneath 
+# RECURSIVE - Create recursive ZFS snapshots for all child filsystems beneath
 #             all filesystems specified in "FS".  All child filesystems will
 #             be mounted for borgbackup.
 #   Example: RECURSIVE=true
@@ -78,7 +78,7 @@ export BINDDIR="/run/borgsnap"
 export BORGPATH="borg1" # "borg1" for rsync, otherwise "borg" as appropriate
 
 usage() {
-  cat << EOF
+  cat <<EOF
 
 usage: $(basename "$0") <command> <config_file> [<args>]
 
@@ -116,14 +116,17 @@ readconfigfile() {
 
   source "$1"
 
-  BORG_PASSPHRASE=$(< "$PASS")
+  BORG_PASSPHRASE=$(<"$PASS")
   export BORG_PASSPHRASE
 
   [[ -n $BORG_PASSPHRASE ]] || die "Unable to read passphrase from file $PASS"
   if [[ -n $LOCAL ]]; then
     [[ -d $LOCAL ]] || die "Non-existent output directory $LOCAL"
   fi
-  scriptpath="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+  scriptpath="$(
+    cd -- "$(dirname "$0")" >/dev/null 2>&1
+    pwd -P
+  )"
   echo "scriptpath is $scriptpath/$PRE_SCRIPT"
   if [[ -n $PRE_SCRIPT ]]; then
     [[ -f $PRE_SCRIPT ]] || die "PRE_SCRIPT specified but could not be found: $PRE_SCRIPT"
@@ -159,7 +162,6 @@ readconfigfile() {
     echo "REMOTE_BORG_COMMAND set to $BORGPATH"
   fi
 
-
 }
 
 findlast() {
@@ -194,13 +196,12 @@ destroysnapshot() {
   sleep 5
 }
 
-
 recursivezfsmount() {
   # $1 - volume, pool/dataset
   # $2 - snapshot label
   # Expects $bind_dir
 
-  for R in `zfs list -Hr -t snapshot -o name $1|grep "@$2$"|sed -e "s@^$1@@" -e "s/@$2$//"`; do
+  for R in $(zfs list -Hr -t snapshot -o name $1 | grep "@$2$" | sed -e "s@^$1@@" -e "s/@$2$//"); do
     echo Mounting child filesystem snapshot: "$1$R@$2"
     mkdir -p "$bind_dir$R"
     mount -t zfs "$1$R@$2" "$bind_dir$R"
@@ -212,8 +213,8 @@ recursivezfsumount() {
   # $2 - snapshot label
   # Expects $bind_dir
 
-  for R in `zfs list -Hr -t snapshot -o name $1|grep "@$2$"|sed -e "s@^$1@@" -e "s/@$2$//"|tac`; do
-	echo Unmounting child filesystem snapshot: "$bind_dir$R"
+  for R in $(zfs list -Hr -t snapshot -o name $1 | grep "@$2$" | sed -e "s@^$1@@" -e "s/@$2$//" | tac); do
+    echo Unmounting child filesystem snapshot: "$bind_dir$R"
     umount "$bind_dir$R"
   done
 }
@@ -264,7 +265,7 @@ purgeold() {
   if [[ $total -le $3 ]]; then
     echo "No old backups to purge"
   else
-    delete=$((total-$3))
+    delete=$((total - $3))
     echo "Keep: $3, found: $total, will delete $delete"
     for i in $(tail -n $delete <<<"$(findall "$1" "$2")"); do
       echo "Purging old snapshot $i"
@@ -335,7 +336,7 @@ runBackup() {
       echo "Executing pre-snapshot script: $PRE_SCRIPT"
       if [[ -x $PRE_SCRIPT ]]; then
         $PRE_SCRIPT $i
-	sleep 3
+        sleep 3
       fi
     fi
 
@@ -441,8 +442,6 @@ tidybackup() {
     fi
   fi
 
-
-
   if [[ -n $rsyncdir ]]; then
     echo "Deleting remote backup of ${1}@${2}"
     borg delete $BORG_OPTS --remote-path=${BORGPATH} $BORG_OPTS "$rsyncdir::${2}"
@@ -453,8 +452,7 @@ tidyUp() {
   readconfigfile $1
   echo "====== $(date) ======"
   echo "Unmounting snapshots"
-  for f in $(mount | grep ' on /run/borgsnap/' | sed 's/^.* on //' | sed 's/\ type zfs.*//' | tac)
-  do
+  for f in $(mount | grep ' on /run/borgsnap/' | sed 's/^.* on //' | sed 's/\ type zfs.*//' | tac); do
     umount $f
   done
   echo "Removing todays snapshots / backups"
@@ -473,29 +471,29 @@ tidyUp() {
     if [[ $forcemonth == 1 || $dom -eq 1 ]]; then
       label="month-$date"
       destroysnapshot "$i" "$label"
-	  tidybackup "$i" "$label"
+      tidybackup "$i" "$label"
     elif [[ $forceweek == 1 || $dow -eq 0 ]]; then
       label="week-$date"
       destroysnapshot "$i" "$label"
-	  tidybackup "$i" "$label"
+      tidybackup "$i" "$label"
     else
       label="day-$date"
       destroysnapshot "$i" "$label"
-	  tidybackup "$i" "$label"
+      tidybackup "$i" "$label"
     fi
   done
   echo "Tidy Done $(date)"
 }
 
-if [ $# -eq 0 ];then
+if [ $# -eq 0 ]; then
   usage
   exit
 fi
 
 case "$1" in
-  run) runBackup "${@:2}";;
-  snap) backupSnapshot "${@:2}";;
-  tidy) tidyUp "${@:2}";;
-  *) echo "$1 is an unknown command!" && usage;;
+run) runBackup "${@:2}" ;;
+snap) backupSnapshot "${@:2}" ;;
+tidy) tidyUp "${@:2}" ;;
+*) echo "$1 is an unknown command!" && usage ;;
 esac
 exit
