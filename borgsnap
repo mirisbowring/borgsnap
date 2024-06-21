@@ -181,6 +181,12 @@ findall() {
 }
 
 snapshot() {
+  # No Snapshot if BACKUP_TYPE is not 'zfs'
+  if [ "$BACKUP_TYPE" != "zfs" ]; then
+    echo "Skipping snapshot as BACKUP_TYPE is not 'zfs'"
+    return 0
+  fi
+
   if [ "$RECURSIVE" = true ]; then
     echo "Recursive snapshot ${1}@${2}"
     zfs snapshot -r "${1}@${2}"
@@ -193,6 +199,12 @@ snapshot() {
 }
 
 destroysnapshot() {
+  # No destroy Snapshot if BACKUP_TYPE is not 'zfs'
+  if [ "$BACKUP_TYPE" != "zfs" ]; then
+    echo "Skipping snapshot as BACKUP_TYPE is not 'zfs'"
+    return 0
+  fi
+
   if [ "$RECURSIVE" = true ]; then
     echo "Recursive snapshot ${1}@${2}"
     zfs destroy -r "${1}@${2}"
