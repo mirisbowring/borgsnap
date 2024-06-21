@@ -10,6 +10,7 @@ LOCAL_READABLE_BY_OTHERS=false # Whether non root users should be able to read t
 LOCALSKIP=false # Skip local Backups and only do remote ones
 RECURSIVE=true # Also create Snapshots for child filesystems
 COMPRESS="zstd,3" # Compression method for borg
+CACHEMODE="" # How borg will detect changes see https://borgbackup.readthedocs.io/en/stable/usage/create.html#description
 REMOTE="" # E.g. XXXX@YYYY.rsync.net:myhost (only rsync has been tested yet)
 REMOTE_BORG_COMMAND="borg" # 'borg' for local 'borg1' for local & remote
 PASS="/boot/config/plugins/user.scripts/scripts/borgsnap/backup.key" # Path to a file containing a single line with the passphrase for borg encryption. See https://github.com/mirisbowring/borgsnap/tree/master?tab=readme-ov-file#generate-key
