@@ -113,6 +113,8 @@ forceweek=0
 readconfigfile() {
   [[ $# == 1 ]] || usage
 
+  : "${NO_CONFIG:=false}"
+
   # source config file if values have not been set already
   if [[ "$NO_CONFIG" != true ]]; then
     [[ -r $1 ]] || die "Unable to open $1"

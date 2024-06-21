@@ -1,52 +1,19 @@
 # borgsnap - Backups using ZFS snapshots, borg, and (optionally) rsync.net
 
-This fork adds:
-
-* COMPRESS - variable to specify Borg compression method
-* RECURSIVE - for recursive ZFS snapshot support
-* BASEDIR - set cache/config folders
-* LOCALSKIP - Ignore LOCAL path, create/purge remote backups only
-* REMOTE_BORG_PATH - Configure remote borg command.  Defaults to borg1.
-* PRE_SCRIPT and POST_SCRIPT - Run a script before or after taking ZFS snap
-
-**The configuration file must include all options present in sample.conf, even
-if the option has no value specified.**
-
-*If RECURSIVE=true, borgsnap will create recursive ZFS snapshots for all
-nominated FS filesystems.  Each child filesystem snapshot will be mounted
-underneath the snapshot mount of the parent filesystem.  This allows borgsnap
-to backup the parent filesystem and all child filesystems in a single borgbackup
-repository.*
-
-*COMPRESS default in sample.conf is zstd*
-
-_BASEDIR will configure BORG_BASE_DIR option, this will move the cache/config
-folders.  Added for unRAID where root home folder is not persistent.  If unset,
-BORG_BASE_DIR will default to $HOME_
-
-_CACHEMODE will configure how Borgbackup detects changed files
-https://borgbackup.readthedocs.io/en/stable/usage/create.html_
-
-_LOCALSKIP will skip LOCAL path for all operations and only perform backups
-and purge operations on REMOTE target._
-
-_REMOTE_BORG_PATH defaults to "borg1" for rsync.net.  Set this to "borg" for
-normal remote borg destinations._ 
-
-_PRE_SCRIPT will run before taking a snapshot for each dataset.  The example
-provided demonstrates how to run a command only for a specific dataset.  Specify
-the full path to the script._
-
-_POST_SCRIPT will run after taking a snapshot for each dataset.  The example
-provided demonstrates how to run a command only for a specific dataset.  Specify
-the full path to the script._
-
-*set -e was removed, this fork of borgsnap will continue running if a command
-fails*
-
 This is a simple script for doing automated daily backups of ZFS filesystems.
 It uses ZFS snapshots, but could easily be adaptable to other filesystems,
 including those without snapshots.
+
+> This fork provides an user.scripts template for unraid and easy install instructions.
+>
+> Previous Forks:
+> 
+> 1. https://github.com/scotte/borgsnap
+> 2. https://github.com/ManuelSchmitzberger/borgsnap
+> 3. https://github.com/jortan/borgsnap
+> 4. https://github.com/michael-d-stone/borgsnap
+
+## What is BORG
 
 [Borg](https://www.borgbackup.org/) has excellent deduplication, so unchanged
 blocks are only stored once. Borg backups are encrypted and compressed
@@ -69,62 +36,7 @@ There is also the possibility to backup an already existing snapshot.
 
 This assumes borg version 1.0 or later.
 
-Finally, these things are probably obvious, but: Make sure your local backups
-are on a different physical drive than the data you are backing up and don't
-forget to do remote backups, because a local backup isn't disaster proofing
-your data.
-
-## borgsnap installation
-```
-git clone git@github.com:jortan/borgsnap.git
-```
-
-generate key:
-```
-pwgen 128 1 > /path/to/my/super/secret/myhost.key
-```
-
-adapt sample.conf
-```
-FS="zroot/root zroot/home zdata/data"
-LOCAL="/backup/borg"
-BASEDIR=""
-LOCAL_READABLE_BY_OTHERS=false
-LOCALSKIP=false
-RECURSIVE=true
-COMPRESS=zstd
-CACHEMODE="mtime,size"
-REMOTE=""
-REMOTE_BORG_COMMAND=
-PASS="/path/to/my/super/secret/myhost.key"
-MONTH_KEEP=1
-WEEK_KEEP=4
-DAY_KEEP=7
-PRE_SCRIPT=
-POST_SCRIPT=
-```
-
-how to:
-```
-usage: borgsnap <command> <config_file> [<args>]
-
-commands:
-    run             Run backup lifecycle.
-                    usage: borgsnap run <config_file>
-
-    snap            Run backup for specific snapshot.
-                    usage: borgsnap snap <config_file> <snapshot-name>
-					
-    tidy            Unmount and remove snapshots/local backups for today
-                    usage: borgsnap tidy <config_file>
-					
-                    Added for test/dev purposes, may not work as intended!
-
-                    Note: this will unmount all snapshots mounted by borgsnap
-                    including other running instances.	
-```
-
-## how it works
+## How It Works
 
 Borgsnap is pretty simple, it has the following basic flow:
 
@@ -150,6 +62,98 @@ effort to remove any mountpoints, delete today's zfs snapshots and borg
 archives, allowing borgsnap to be run again that day.  This was added mostly
 for test/dev purposes and may not work as intended!
 
+> Finally, these things are probably obvious, but: Make sure your local backups
+> are on a different physical drive than the data you are backing up and don't
+> forget to do remote backups, because a local backup isn't disaster proofing
+> your data.
+
+## Installation
+
+### Download
+```bash
+git clone https://github.com/mirisbowring/borgsnap.git 
+```
+
+Or on UNRAID ([User Scripts Plugin](https://forums.unraid.net/topic/48286-plugin-ca-user-scripts/) must be installed)
+
+```bash
+git clone https://github.com/mirisbowring/borgsnap.git /boot/config/plugins/user.scripts/scripts/borgsnap
+```
+
+### Generate Key
+
+```
+pwgen 128 1 > /path/to/my/super/secret/myhost.key
+```
+
+Or on UNRAID
+
+```bash
+openssl rand -base64 64 | openssl enc -A -base64 > /boot/config/plugins/user.scripts/scripts/borgsnap/backup.key
+```
+
+### Config
+
+You could copy `sample.conf` or `sample_rsync.conf` to e.g. `backup.conf` and
+adapt the values to your needs.
+
+On Unraid you can see the script now on the WEB-UI under `/Settings/Userscripts`.
+Click on the gear next to `borgsnap` and select `Edit Script`. Now you can adapt the values within the WebUI.
+
+> Even if a Variable is not used, set it to `""` or the script will fail.
+
+You may want to create a cronjob for a daily schedule!
+
+**VALUES**
+
+| Key | Default Value | Description |
+| --- | ------------- | ----------- |
+| FS |  | List file ZFS filesystems to backup. E.g. `FS="zroot/root zroot/home zdata/data"` |
+| LOCAL |  | If specified (not ""), directory for borg backups. Backups will be stored in subdirectories of pool and filesystem. E.g. `zroot/root` would be stored in `/backup/borg/zroot/root`. **This directory must be created prior to running borgsnap.** |
+| BASEDIR  | $HOME | This location is used for borg caching. On Unraid this should be a persisted folder (the default /root is not persisted across reboots). |
+| LOCAL_READABLE_BY_OTHERS | false | Make borg repo readable by non-root |
+| LOCALSKIP | false | If specified, borgsnap will skip local backup destinations and only issue backup commands to REMOTE destination |
+| RECURSIVE | true | Create recursive ZFS snapshots for all child filsystems beneath all filesystems specified in "FS".  All child filesystems will be mounted for borgbackup. |
+| COMPRESS | zstd | hoose compression algo for Borg backups.  Default for borgbackup is lz4, default here is zstd (which applies zstd,3) |
+| CACHEMODE | ctime,size,inode | How borg will detect changes [see here](https://borgbackup.readthedocs.io/en/stable/usage/create.html#description) |
+| REMOTE |  | If specified (not ""), remote connect string and directory. Only rsync.net has been tested. The remote directory (myhost in the example) will be created if it does not exist. E.g. `XXXX@YYYY.rsync.net:myhost`|
+| REMOTE_BORG_COMMAND | borg1 | "borg1" for rsync, otherwise "borg" as appropriate |
+| PASS |  | Path to a file containing a single line with the passphrase for borg encryption. [See Generate Key](#generate-key) |
+| MONTH_KEEP | 1 | Number of month backups to keep. |
+| WEEK_KEEP | 4 | Number of week backups to keep. |
+| DAY_KEEP | 7 | Number of day backups to keep. |
+| PRE_SCRIPT |  | will run before taking a snapshot for each dataset.  The [example provided](https://github.com/mirisbowring/borgsnap/blob/master/sample_prescript.sh) demonstrates how to run a command only for a specific dataset. Specify the full path to the script. |
+| POST_SCRIPT |  | will run after taking a snapshot for each dataset.  The [example provided](https://github.com/mirisbowring/borgsnap/blob/master/sample_postscript.sh) demonstrates how to run a command only for a specific dataset. Specify the full path to the script. |
+| NO_CONFIG | false | (Mostly needed for UNRAID) use this to disable config file check for borgsnap (only needed when using this script template) |
+
+### Command Line
+
+After configuring this script, you can execute borgsnap with the following arguments.
+
+```
+usage: borgsnap <command> <config_file> [<args>]
+
+commands:
+    run             Run backup lifecycle.
+                    usage: borgsnap run <config_file>
+
+    snap            Run backup for specific snapshot.
+                    usage: borgsnap snap <config_file> <snapshot-name>
+					
+    tidy            Unmount and remove snapshots/local backups for today
+                    usage: borgsnap tidy <config_file>
+					
+                    Added for test/dev purposes, may not work as intended!
+
+                    Note: this will unmount all snapshots mounted by borgsnap
+                    including other running instances.	
+```
+
+else you could use the preconfigured execution script for the user scripts plugin.
+
+```bash
+./script
+```
 
 ## Restoring files
 
