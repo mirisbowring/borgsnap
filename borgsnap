@@ -111,12 +111,11 @@ forcemonth=0
 forceweek=0
 
 readconfigfile() {
-  [[ $# == 1 ]] || usage
-
-  : "${NO_CONFIG:=false}"
+    : "${NO_CONFIG:=false}"
 
   # source config file if values have not been set already
   if [[ "$NO_CONFIG" != true ]]; then
+    [[ $# == 1 ]] || usage
     [[ -r $1 ]] || die "Unable to open $1"
     source "$1"
   fi
