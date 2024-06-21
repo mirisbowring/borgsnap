@@ -345,7 +345,7 @@ runBackup() {
     if [[ -n $borgdir && ! -d $borgdir && "$LOCALSKIP" != true ]]; then
       echo "Initializing borg $borgdir"
       mkdir -p "$borgdir"
-      borg init --encryption=repokey "$borgdir"
+      borg init --encryption=repokey-blake2 "$borgdir"
     fi
     if [[ -n $rsyncdir ]]; then
       host=${REMOTE%:*}
@@ -356,7 +356,7 @@ runBackup() {
         set -e
         echo "Initializing remote $rsyncdir"
         ssh "$host" mkdir -p "$dir/$dataset"
-        borg init --encryption=repokey --remote-path=${BORGPATH} "$rsyncdir"
+        borg init --encryption=repokey-blake2 --remote-path=${BORGPATH} "$rsyncdir"
       fi
       set -e
     fi
@@ -431,7 +431,7 @@ backupSnapshot() {
     if [[ -n $borgdir && ! -d $borgdir ]]; then
       echo "Initializing borg $borgdir"
       mkdir -p "$borgdir"
-      borg init --encryption=repokey "$borgdir"
+      borg init --encryption=repokey-blake2 "$borgdir"
     fi
     if [[ -n $rsyncdir ]]; then
       host=${REMOTE%:*}
@@ -442,7 +442,7 @@ backupSnapshot() {
         set -e
         echo "Initializing remote $rsyncdir"
         ssh "$host" mkdir -p "$dir/$dataset"
-        borg init --encryption=repokey --remote-path=${BORGPATH} "$rsyncdir"
+        borg init --encryption=repokey-blake2 --remote-path=${BORGPATH} "$rsyncdir"
       fi
       set -e
     fi
