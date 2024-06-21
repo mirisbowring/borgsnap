@@ -6,6 +6,16 @@ including those without snapshots.
 
 > This fork provides an user.scripts template for unraid and easy install instructions.
 >
+> **Notable Changes:**
+> * Switch from repokey (HMAC-SHA256) to repokey-blake2 (BLAKE2b-256) for performance and security reasons  
+>   Note: this should not affect older repos when migrating from an older fork
+> * Implement BACKUP_TYPE  
+>   Besides `zfs`, `plain` is supported so you can backup any folder (independant of any snapshots).
+> * Unraid User.Scripts compatibility  
+>   This fork adds a `script` files that is automatically picked up by unraid user scripts and handles the backup with a clean configuration option from Unraid UI
+> * Self-Update (WIP)  
+>   This fork added an `update` script that updates the tool if changes are available upstream.
+>
 > Previous Forks:
 > 
 > 1. https://github.com/scotte/borgsnap
@@ -70,6 +80,7 @@ for test/dev purposes and may not work as intended!
 ## Installation
 
 ### Download
+
 ```bash
 git clone https://github.com/mirisbowring/borgsnap.git 
 ```
@@ -78,6 +89,14 @@ Or on UNRAID ([User Scripts Plugin](https://forums.unraid.net/topic/48286-plugin
 
 ```bash
 git clone https://github.com/mirisbowring/borgsnap.git /boot/config/plugins/user.scripts/scripts/borgsnap
+```
+
+### Updates
+
+Just navigate into the cloned repository and execute the following:
+
+```bash
+/bin/bash update
 ```
 
 ### Generate Key
@@ -125,6 +144,7 @@ You may want to create a cronjob for a daily schedule!
 | PRE_SCRIPT |  | will run before taking a snapshot for each dataset.  The [example provided](https://github.com/mirisbowring/borgsnap/blob/master/sample_prescript.sh) demonstrates how to run a command only for a specific dataset. Specify the full path to the script. |
 | POST_SCRIPT |  | will run after taking a snapshot for each dataset.  The [example provided](https://github.com/mirisbowring/borgsnap/blob/master/sample_postscript.sh) demonstrates how to run a command only for a specific dataset. Specify the full path to the script. |
 | NO_CONFIG | false | (Mostly needed for UNRAID) use this to disable config file check for borgsnap (only needed when using this script template) |
+| BACKUP_TYPE |  | `zfs` for ZFS filesystems / `plain` for standard paths | 
 
 ### Command Line
 
