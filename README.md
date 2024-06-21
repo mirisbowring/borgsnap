@@ -15,6 +15,12 @@ including those without snapshots.
 >   This fork adds a `script` files that is automatically picked up by unraid user scripts and handles the backup with a clean configuration option from Unraid UI
 > * Self-Update (WIP)  
 >   This fork added an `update` script that updates the tool if changes are available upstream.
+> * MonoRepo  
+>   This fork offers the option to backup all paths / snapshots into a single
+>   borg repo (instead of multiple). This has the advantage of a better
+>   deduplication and a security benefit since the key would be reused for
+>   multiple repos and since borg is using AES-CTR, one should not use the same
+>   key for different repos
 >
 > Previous Forks:
 > 
@@ -145,6 +151,7 @@ You may want to create a cronjob for a daily schedule!
 | POST_SCRIPT |  | will run after taking a snapshot for each dataset.  The [example provided](https://github.com/mirisbowring/borgsnap/blob/master/sample_postscript.sh) demonstrates how to run a command only for a specific dataset. Specify the full path to the script. |
 | NO_CONFIG | false | (Mostly needed for UNRAID) use this to disable config file check for borgsnap (only needed when using this script template) |
 | BACKUP_TYPE |  | `zfs` for ZFS filesystems / `plain` for standard paths | 
+| BORG_REPO |  | Name the monolithic borg repo you would like to use. Every Filesystem will be stored within this repo but as separate archive. E.g. `photos_month-20240621`
 
 ### Command Line
 

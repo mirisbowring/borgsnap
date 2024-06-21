@@ -131,6 +131,14 @@ readconfigfile() {
   [[ -n $BACKUP_TYPE ]] || die "No BACKUP_TYPE set"
   export BACKUP_TYPE
 
+  # check if mono repo is configured
+  if [[ -n $BORG_REPO ]]; then
+    export BORG_REPO
+    export mono_repo="true"
+  else
+    export mono_repo="false"
+  fi
+
   scriptpath="$(
     cd -- "$(dirname "$0")" >/dev/null 2>&1
     pwd -P
@@ -244,7 +252,7 @@ dobackup() {
   # $2 - label, i.e. month-20170602
   # Expects borgdir, rsyncdir, BINDDIR
 
-  echo "------ $(date) ------"
+  echo "------ $(date "+%m-%d-%Y %T") ------"
   if [ "$BACKUP_TYPE" = "zfs" ]; then
     # mount volume if zfs type
     bind_dir="${BINDDIR}/${1}"
@@ -261,20 +269,32 @@ dobackup() {
     exit 1
   fi
 
-  BORG_OPTS="--info --stats --compression $COMPRESS --files-cache $CACHEMODE --exclude-if-present .noborg"
+  BORG_OPTS="--info --stats --show-rc --compression $COMPRESS --files-cache $CACHEMODE --exclude-if-present .noborg"
+
+  # give archive dataset name if mono repo is used
+  if [ "$mono_repo" = "false" ]; then
+    archive=${2} # e.g. month-20240621
+  else
+    archive=${1}_${2} # e.g. photos_month-20240621
+  fi
+
   if [[ -n $borgdir && "$LOCALSKIP" != true ]]; then
     echo "Doing local backup of ${1}@${2}"
-    borg create $BORG_OPTS "${borgdir}::${2}" "$bind_dir"
-    if [ "$LOCAL_READABLE_BY_OTHERS" = true ]; then
+    borg create $BORG_OPTS "${borgdir}::${archive}" "$bind_dir"
+    if [ "$LOCAL_READABLE_BY_OTHERS" = "true" ]; then
       echo "Set read permissions for others"
       chmod +rx "${borgdir}" -R
+    else
+      echo "Restrict read permissions for others"
+      chmod 700 -R "${borgdir}"
     fi
   else
     echo "Skipping local backup"
   fi
+
   if [[ -n $rsyncdir ]]; then
     echo "Doing remote backup of ${1}@${2}"
-    borg create $BORG_OPTS --remote-path=${BORGPATH} "${rsyncdir}::${2}" "$bind_dir"
+    borg create $BORG_OPTS --remote-path=${BORGPATH} "${rsyncdir}::${archive}" "$bind_dir"
   fi
 
   if [ "$BACKUP_TYPE" = "zfs" ]; then
@@ -287,13 +307,13 @@ dobackup() {
   fi
 }
 
-purgeold() {
+purgeoldzfs() {
   # $1 - volume, i.e. zroot/home
   # $2 - prefix, i.e. month, week, or day
   # $3 - number to keep
   # Expects borgdir, rsyncdir
 
-  echo "------ $(date) ------"
+  echo "------ $(date "+%m-%d-%Y %T") ------"
   total=$(wc -l <<<"$(findall "$1" "$2")")
 
   if [[ $total -le $3 ]]; then
@@ -305,7 +325,7 @@ purgeold() {
       echo "Purging old snapshot $i"
       zfs destroy -r "$i"
     done
-    BORG_OPTS="--info --stats --keep-daily=$DAY_KEEP --keep-weekly=$WEEK_KEEP --keep-monthly=$MONTH_KEEP"
+    BORG_OPTS="--info --show-rc --stats --keep-daily=$DAY_KEEP --keep-weekly=$WEEK_KEEP --keep-monthly=$MONTH_KEEP"
     if [[ -n $borgdir && "$LOCALSKIP" != true ]]; then
       echo "Pruning local borg"
       borg prune $BORG_OPTS "$borgdir"
@@ -317,6 +337,28 @@ purgeold() {
   fi
 }
 
+purgeold() {
+  # $1 - volume, i.e. zroot/home
+  # $2 - prefix, i.e. month, week, or day
+  # $3 - number to keep
+  # Expects borgdir, rsyncdir
+
+  if [ "$BACKUP_TYPE" = "zfs" ]; then
+    purgeoldzfs "${1}" "${2}" "${3}"
+  elif [ "$BACKUP_TYPE" = "plain" ]; then
+    BORG_OPTS="--info --glob-archives '${1}-*' --show-rc --stats --keep-daily=$DAY_KEEP --keep-weekly=$WEEK_KEEP --keep-monthly=$MONTH_KEEP"
+    if [[ -n $borgdir && "$LOCALSKIP" != true ]]; then
+      echo "Pruning local borg"
+      borg prune $BORG_OPTS "$borgdir"
+    fi
+    if [[ -n $rsyncdir ]]; then
+      echo "Pruning remote borg"
+      borg prune $BORG_OPTS --remote-path=${BORGPATH} "$rsyncdir"
+    fi
+  fi
+
+}
+
 runBackup() {
 
   # only pass the argument when given
@@ -326,9 +368,14 @@ runBackup() {
     readconfigfile
   fi
 
-  echo "====== $(date) ======"
+  echo "====== $(date "+%m-%d-%Y %T") ======"
   for i in $FS; do
-    dataset=${i}
+    if [ "$mono_repo" = "false" ]; then
+      dataset=${i}
+    else
+      dataset=${BORG_REPO}
+    fi
+
     if [[ -n $LOCAL ]]; then
       borgdir="$LOCAL/$dataset"
     else
@@ -340,7 +387,7 @@ runBackup() {
       rsyncdir=""
     fi
 
-    echo "Processing $dataset"
+    echo "Processing $i"
 
     if [[ -n $borgdir && ! -d $borgdir && "$LOCALSKIP" != true ]]; then
       echo "Initializing borg $borgdir"
@@ -372,7 +419,7 @@ runBackup() {
     fi
 
     if [[ -n $PRE_SCRIPT ]]; then
-      echo "====== $(date) ======"
+      echo "====== $(date "+%m-%d-%Y %T") ======"
       echo "Executing pre-snapshot script: $PRE_SCRIPT"
       if [[ -x $PRE_SCRIPT ]]; then
         $PRE_SCRIPT $i
@@ -381,40 +428,45 @@ runBackup() {
     fi
 
     if [[ $forcemonth == 1 || $dom -eq 1 ]]; then
-      label="month-$date"
+      label="month-$(date "+%m-%d-%Y %T")"
       snapshot "$i" "$label"
       dobackup "$i" "$label"
       purgeold "$i" month "$MONTH_KEEP"
     elif [[ $forceweek == 1 || $dow -eq 0 ]]; then
-      label="week-$date"
+      label="week-$(date "+%m-%d-%Y %T")"
       snapshot "$i" "$label"
       dobackup "$i" "$label"
       purgeold "$i" week "$WEEK_KEEP"
     else
-      label="day-$date"
+      label="day-$(date "+%m-%d-%Y %T")"
       snapshot "$i" "$label"
       dobackup "$i" "$label"
       purgeold "$i" day "$DAY_KEEP"
     fi
 
     if [[ -n $POST_SCRIPT ]]; then
-      echo "====== $(date) ======"
+      echo "====== $(date "+%m-%d-%Y %T") ======"
       echo "Executing post-snapshot script: $POST_SCRIPT"
       if [[ -x $POST_SCRIPT ]]; then
         $POST_SCRIPT $i
       fi
     fi
   done
-  echo "====== $(date) ======"
+  echo "====== $(date "+%m-%d-%Y %T") ======"
 
-  echo "Backup Done $(date)"
+  echo "Backup Done $(date "+%m-%d-%Y %T")"
 }
 
 backupSnapshot() {
   readconfigfile $1
 
   for i in $FS; do
-    dataset=${i}
+    if [ "$mono_repo" = "false" ]; then
+      dataset=${i}
+    else
+      dataset=${BORG_REPO}
+    fi
+
     if [[ -n $LOCAL ]]; then
       borgdir="$LOCAL/$dataset"
     else
@@ -426,7 +478,7 @@ backupSnapshot() {
       rsyncdir=""
     fi
 
-    echo "Processing $dataset"
+    echo "Processing $i"
 
     if [[ -n $borgdir && ! -d $borgdir ]]; then
       echo "Initializing borg $borgdir"
@@ -459,7 +511,7 @@ tidybackup() {
   # $2 - label, i.e. month-20170602
   # Expects borgdir, BINDDIR
 
-  echo "------ $(date) ------"
+  echo "------ $(date "+%m-%d-%Y %T") ------"
   bind_dir="${BINDDIR}/${1}"
   if [[ -n $LOCAL ]]; then
     borgdir="$LOCAL/$dataset"
@@ -490,7 +542,7 @@ tidybackup() {
 
 tidyUp() {
   readconfigfile $1
-  echo "====== $(date) ======"
+  echo "====== $(date "+%m-%d-%Y %T") ======"
   echo "Unmounting snapshots"
   for f in $(mount | grep ' on /run/borgsnap/' | sed 's/^.* on //' | sed 's/\ type zfs.*//' | tac); do
     umount $f
@@ -509,20 +561,20 @@ tidyUp() {
     fi
 
     if [[ $forcemonth == 1 || $dom -eq 1 ]]; then
-      label="month-$date"
+      label="month-$(date "+%m-%d-%Y %T")"
       destroysnapshot "$i" "$label"
       tidybackup "$i" "$label"
     elif [[ $forceweek == 1 || $dow -eq 0 ]]; then
-      label="week-$date"
+      label="week-$(date "+%m-%d-%Y %T")"
       destroysnapshot "$i" "$label"
       tidybackup "$i" "$label"
     else
-      label="day-$date"
+      label="day-$(date "+%m-%d-%Y %T")"
       destroysnapshot "$i" "$label"
       tidybackup "$i" "$label"
     fi
   done
-  echo "Tidy Done $(date)"
+  echo "Tidy Done $(date "+%m-%d-%Y %T")"
 }
 
 if [ $# -eq 0 ]; then

@@ -21,6 +21,7 @@ PRE_SCRIPT="" # /boot/config/plugins/user.scripts/scripts/borgsnap/prescript.sh
 POST_SCRIPT="" # /boot/config/plugins/user.scripts/scripts/borgsnap/postscript.sh
 NO_CONFIG=true # use this to disable config file check for borgsnap (only needed when using this script template)
 BACKUP_TYPE=zfs # 'zfs' for zfs pools | 'plain' for default paths (no snapshots)
+BORG_REPO="" # Set a repo name if you want a Monolithic Repo
 
 source /boot/config/plugins/user.scripts/scripts/borgsnap/borgsnap run # config file not neccessary due to $NO_CONFIG
 
