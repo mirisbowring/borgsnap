@@ -20,5 +20,11 @@ DAY_KEEP=7 # Number of day backups to keep.
 PRE_SCRIPT="" # /boot/config/plugins/user.scripts/scripts/borgsnap/prescript.sh
 POST_SCRIPT="" # /boot/config/plugins/user.scripts/scripts/borgsnap/postscript.sh
 NO_CONFIG=true # use this to disable config file check for borgsnap (only needed when using this script template)
+BACKUP_TYPE=zfs # 'zfs' for zfs pools | 'plain' for default paths (no snapshots)
 
 source /boot/config/plugins/user.scripts/scripts/borgsnap/borgsnap run # config file not neccessary due to $NO_CONFIG
+
+## (OPTIONAL) additional BACKUP_TYPE
+#BACKUP_TYPE=plain
+#
+#source /boot/config/plugins/user.scripts/scripts/borgsnap/borgsnap run

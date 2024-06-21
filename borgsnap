@@ -127,6 +127,10 @@ readconfigfile() {
   if [[ -n $LOCAL ]]; then
     [[ -d $LOCAL ]] || die "Non-existent output directory $LOCAL"
   fi
+
+  [[ -n $BACKUP_TYPE ]] || die "No BACKUP_TYPE set"
+  export BACKUP_TYPE
+
   scriptpath="$(
     cd -- "$(dirname "$0")" >/dev/null 2>&1
     pwd -P
@@ -229,12 +233,22 @@ dobackup() {
   # Expects borgdir, rsyncdir, BINDDIR
 
   echo "------ $(date) ------"
-  bind_dir="${BINDDIR}/${1}"
-  mkdir -p "$bind_dir"
-  mount -t zfs "${1}@${2}" "$bind_dir"
-  if [ "$RECURSIVE" = true ]; then
-    recursivezfsmount $1 $2
+  if [ "$BACKUP_TYPE" = "zfs" ]; then
+    # mount volume if zfs type
+    bind_dir="${BINDDIR}/${1}"
+    mkdir -p "$bind_dir"
+    mount -t zfs "${1}@${2}" "$bind_dir"
+    if [ "$RECURSIVE" = true ]; then
+      recursivezfsmount $1 $2
+    fi
+  elif [ "$BACKUP_TYPE" = "plain" ]; then
+    # set bind_dir to path that is beeing backed up
+    bind_dir="${1}"
+  else
+    echo "Unknown BACKUP_TYPE: $BACKUP_TYPE"
+    exit 1
   fi
+
   BORG_OPTS="--info --stats --compression $COMPRESS --files-cache $CACHEMODE --exclude-if-present .noborg"
   if [[ -n $borgdir && "$LOCALSKIP" != true ]]; then
     echo "Doing local backup of ${1}@${2}"
@@ -250,11 +264,15 @@ dobackup() {
     echo "Doing remote backup of ${1}@${2}"
     borg create $BORG_OPTS --remote-path=${BORGPATH} "${rsyncdir}::${2}" "$bind_dir"
   fi
-  if [ "$RECURSIVE" = true ]; then
-    recursivezfsumount $1 $2
-  fi
 
-  umount -n "$bind_dir"
+  if [ "$BACKUP_TYPE" = "zfs" ]; then
+    # unmount everythin if zfs
+    if [ "$RECURSIVE" = true ]; then
+      recursivezfsumount $1 $2
+    fi
+
+    umount -n "$bind_dir"
+  fi
 }
 
 purgeold() {
