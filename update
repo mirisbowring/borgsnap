@@ -1,9 +1,13 @@
 #!/bin/bash
 
+echo -e "====== $(date) ======"
+echo -e "\nUpdating borgsnap to it's latest version..."
+
 git stage script
 git stash
 git pull
 git stash pop
 
-echo "Please Fix possible merge conflicts in ./script..."
+echo -e "\n\n====== $(date) ======"
+echo -e "\nPlease Fix possible merge conflicts in ./script..."
 exit
