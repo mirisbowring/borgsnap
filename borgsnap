@@ -265,7 +265,7 @@ dobackup() {
   if [[ -n $borgdir && "$LOCALSKIP" != true ]]; then
     echo "Doing local backup of ${1}@${2}"
     borg create $BORG_OPTS "${borgdir}::${2}" "$bind_dir"
-    if [ ${LOCAL_READABLE_BY_OTHERS} ]; then
+    if [ "$LOCAL_READABLE_BY_OTHERS" = true ]; then
       echo "Set read permissions for others"
       chmod +rx "${borgdir}" -R
     fi
@@ -476,7 +476,7 @@ tidybackup() {
   if [[ -n $borgdir && $LOCALSKIP != true ]]; then
     echo "Deleting local backup of ${1}@${2}"
     borg delete $BORG_OPTS "${borgdir}::${2}"
-    if [ ${LOCAL_READABLE_BY_OTHERS} ]; then
+    if [ "$LOCAL_READABLE_BY_OTHERS" = true ]; then
       echo "Set read permissions for others"
       chmod +rx "${borgdir}" -R
     fi
