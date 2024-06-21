@@ -289,9 +289,9 @@ purgeold() {
 }
 
 runBackup() {
-  
+
   # only pass the argument when given
-  if [[ -n $1 ]]; then
+  if [[ -n ${1-} ]]; then
     readconfigfile $1
   else
     readconfigfile
