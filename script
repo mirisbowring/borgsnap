@@ -25,6 +25,7 @@ BACKUP_TYPE=zfs # 'zfs' for zfs pools | 'plain' for default paths (no snapshots)
 source /boot/config/plugins/user.scripts/scripts/borgsnap/borgsnap run # config file not neccessary due to $NO_CONFIG
 
 ## (OPTIONAL) additional BACKUP_TYPE
+#FS="/mnt/user/<share1> /mnt/user/<share2>"
 #BACKUP_TYPE=plain
 #
 #source /boot/config/plugins/user.scripts/scripts/borgsnap/borgsnap run
