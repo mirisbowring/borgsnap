@@ -275,7 +275,8 @@ dobackup() {
   if [ "$mono_repo" = "false" ]; then
     archive=${2} # e.g. month-20240621
   else
-    archive=${1}_${2} # e.g. photos_month-20240621
+    archive=${1//\//_}_${2} # e.g. photos_month-20240621
+    
   fi
 
   if [[ -n $borgdir && "$LOCALSKIP" != true ]]; then
@@ -346,7 +347,7 @@ purgeold() {
   if [ "$BACKUP_TYPE" = "zfs" ]; then
     purgeoldzfs "${1}" "${2}" "${3}"
   elif [ "$BACKUP_TYPE" = "plain" ]; then
-    BORG_OPTS="--info --glob-archives '${1}-*' --show-rc --stats --keep-daily=$DAY_KEEP --keep-weekly=$WEEK_KEEP --keep-monthly=$MONTH_KEEP"
+    BORG_OPTS="--info --glob-archives '${1//\//_}-*' --show-rc --stats --keep-daily=$DAY_KEEP --keep-weekly=$WEEK_KEEP --keep-monthly=$MONTH_KEEP"
     if [[ -n $borgdir && "$LOCALSKIP" != true ]]; then
       echo "Pruning local borg"
       borg prune $BORG_OPTS "$borgdir"
