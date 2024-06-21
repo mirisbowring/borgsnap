@@ -223,7 +223,7 @@ recursivezfsmount() {
 
   for R in $(zfs list -Hr -t snapshot -o name $1 | grep "@$2$" | sed -e "s@^$1@@" -e "s/@$2$//"); do
     echo Mounting child filesystem snapshot: "$1$R@$2"
-    mkdir -p "$bind_dir$R"
+    mkdir -p -m 700 "$bind_dir$R"
     mount -t zfs "$1$R@$2" "$bind_dir$R"
   done
 }
@@ -248,7 +248,7 @@ dobackup() {
   if [ "$BACKUP_TYPE" = "zfs" ]; then
     # mount volume if zfs type
     bind_dir="${BINDDIR}/${1}"
-    mkdir -p "$bind_dir"
+    mkdir -p -m 700 "$bind_dir"
     mount -t zfs "${1}@${2}" "$bind_dir"
     if [ "$RECURSIVE" = true ]; then
       recursivezfsmount $1 $2
@@ -344,7 +344,7 @@ runBackup() {
 
     if [[ -n $borgdir && ! -d $borgdir && "$LOCALSKIP" != true ]]; then
       echo "Initializing borg $borgdir"
-      mkdir -p "$borgdir"
+      mkdir -p -m 700 "$borgdir"
       borg init --encryption=repokey-blake2 "$borgdir"
     fi
     if [[ -n $rsyncdir ]]; then
@@ -430,7 +430,7 @@ backupSnapshot() {
 
     if [[ -n $borgdir && ! -d $borgdir ]]; then
       echo "Initializing borg $borgdir"
-      mkdir -p "$borgdir"
+      mkdir -p -m 700 "$borgdir"
       borg init --encryption=repokey-blake2 "$borgdir"
     fi
     if [[ -n $rsyncdir ]]; then
@@ -471,7 +471,7 @@ tidybackup() {
   else
     rsyncdir=""
   fi
-  mkdir -p "$bind_dir"
+  mkdir -p -m 700 "$bind_dir"
   BORG_OPTS="--info --stats"
   if [[ -n $borgdir && $LOCALSKIP != true ]]; then
     echo "Deleting local backup of ${1}@${2}"
