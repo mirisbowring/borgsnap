@@ -20,4 +20,4 @@ PRE_SCRIPT="" # /boot/config/plugins/user.scripts/scripts/borgsnap/prescript.sh
 POST_SCRIPT="" # /boot/config/plugins/user.scripts/scripts/borgsnap/postscript.sh
 NO_CONFIG=true # use this to disable config file check for borgsnap (only needed when using this script template)
 
-source borgsnap run # config file not neccessary due to $NO_CONFIG
+source /boot/config/plugins/user.scripts/scripts/borgsnap/borgsnap run # config file not neccessary due to $NO_CONFIG
